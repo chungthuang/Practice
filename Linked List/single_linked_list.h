@@ -35,11 +35,15 @@ class SingleLinkedList
 
 		SingleLinkedList<T> & operator=(const SingleLinkedList<T> & rhs);
 
-		RET_VALUE insert(int key);
+		RET_VALUE insert(int key); 
 		
 		RET_VALUE remove(int key);
 		
 		RET_VALUE reverse();
+
+		int getSize();
+
+		void sort();
 
 		void print();
 
@@ -49,8 +53,16 @@ class SingleLinkedList
 
 		void clear();
 
+		Node<T>* mergeSort(Node<T>* start, int length);
+
+		Node<T>* split(Node<T>* start, int splitIndex);
+
+		Node<T>* merge(Node<T>* left, Node<T>* right, int left_length, int right_length);
+
+
 		Node<T>* head;
 		Node<T>* tail;
+		
 		int size;
 };
 

@@ -107,6 +107,27 @@ RET_VALUE SingleLinkedList<T>::reverse()
 	return SUCCESS;		
 }
 
+template<typename T>
+int SingleLinkedList<T>::getSize()
+{
+	return this->size;
+}
+
+template<typename T>
+void SingleLinkedList<T>::sort()
+{
+	if(this->size > 1)
+	{
+		// The first node is the sentinel node
+		this->head->next = mergeSort(this->head->next, this->size);
+		tail = this->head->next;
+		while(tail->next != NULL)
+		{
+			tail = tail->next;
+		}
+	}
+}
+
 template <typename T>
 void SingleLinkedList<T>::print()
 {
@@ -125,7 +146,7 @@ void SingleLinkedList<T>::print()
 #endif 
 }
 
-/*** Private functions ***/
+/************************* Private functions *************************/
 template <typename T>
 void SingleLinkedList<T>::copy(SingleLinkedList<T> const & other)
 {
@@ -169,6 +190,91 @@ void SingleLinkedList<T>::clear()
 #endif 
 }
 
+template <typename T>
+Node<T>* SingleLinkedList<T>::mergeSort(Node<T>* start, int length)
+{
+	if(length == 1)
+	{
+		return start;
+	}
+	int mid = length/2;
+	Node<T>* second = split(start,mid);
+	Node<T>* left = mergeSort(start,mid);
+	Node<T>* right = mergeSort(second,length-mid); 
+	return merge(left,right,mid,length-mid);
+
+}
+
+template <typename T>
+Node<T>* SingleLinkedList<T>::split(Node<T>* start, int splitIndex)
+{ 
+	Node<T>* curr = start;
+	for(int i = 0; i < splitIndex; i++)
+	{
+#if DEBUG
+		assert(start != NULL);
+#endif
+		curr = curr->next;
+	}
+	return curr;
+}
+
+template <typename T>
+Node<T>* SingleLinkedList<T>::merge(Node<T>* left, Node<T>* right, int left_length, int right_length)
+{
+#if DEBUG
+	assert(left_length > 0);
+	assert(right_length > 0);
+	assert(left->key != SENTINEL_VAL);
+	assert(right->key != SENTINEL_VAL);
+#endif
+	Node<T>* start, *curr; 
+	if(left->key < right->key)
+	{
+		start = left;
+		curr = left;
+		left = left->next;
+		left_length--;
+	}
+	else
+	{
+		start = right;
+		curr = right;
+		right = right->next;
+		right_length--;
+	}
+	while(left_length > 0 || right_length > 0)
+	{
+		if(left_length == 0)
+		{
+			curr->next = right; 
+			right = right->next;
+			right_length--;
+		}
+		else if(right_length == 0)
+		{
+			curr->next = left;
+			left = left->next;
+			left_length--;	
+		}
+		else if(left->key < right->key)
+		{
+			curr->next = left;
+			left = left->next;
+			left_length--;
+		}
+		else
+		{
+			curr->next = right; 
+			right = right->next;
+			right_length--;
+		}
+		curr = curr->next;
+	}
+	curr->next = NULL;
+
+	return start;
+}
 
 /*** Test ***/
 int main(int argc, char* argv[])
@@ -210,7 +316,10 @@ int main(int argc, char* argv[])
 		std::cout << std::endl;
 	}
 
-
+	std::cout << "Test sort" << std::endl;
+	list2.sort();
+	list2.print();
+	std::cout << std::endl;
 
 	return 0;
 }
