@@ -1,34 +1,35 @@
-// gcc -Wall -lc++ -o single_linked_list single_linked_list.cpp 
+// gcc -Wall -lc++ -o double_linked_list double_linked_list.cpp 
 
 #include <assert.h>
 #include <iostream>
-#include "single_linked_list.h"
+#include "double_linked_list.h"
 
 template <typename T>
-SingleLinkedList<T>::SingleLinkedList()
+DoubleLinkedList<T>::DoubleLinkedList()
 {
 	// Create a sentinel node
 	this->head = (Node<T>*)malloc(sizeof(Node<T>));
 	this->head->key = SENTINEL_VAL;
 	this->head->next = NULL;
+	this->head->prev = NULL;
 	this->tail = this->head;
 	this->size = 0;
 }
 
 template <typename T>
-SingleLinkedList<T>::~SingleLinkedList<T>()
+DoubleLinkedList<T>::~DoubleLinkedList<T>()
 {
 	clear();
 }
 
 template <typename T>
-SingleLinkedList<T>::SingleLinkedList(SingleLinkedList const & other)
+DoubleLinkedList<T>::DoubleLinkedList(DoubleLinkedList const & other)
 {
 	copy(other);
 }
 
 template <typename T>
-SingleLinkedList<T> & SingleLinkedList<T>::operator=(SingleLinkedList<T> const & rhs)
+DoubleLinkedList<T> & DoubleLinkedList<T>::operator=(DoubleLinkedList<T> const & rhs)
 {
 	if(this != &rhs)
 	{
@@ -39,13 +40,14 @@ SingleLinkedList<T> & SingleLinkedList<T>::operator=(SingleLinkedList<T> const &
 }
 
 template <typename T>
-RET_VALUE SingleLinkedList<T>::insert(T key)
+RET_VALUE DoubleLinkedList<T>::insert(T key)
 {
 	this->tail->next = (Node<T>*)malloc(sizeof(Node<T>));
 	if(this->tail->next == NULL)
 	{
 		return CANNOT_ALLOCATE;
 	}
+	this->tail->next->prev = this->tail; // Point back
 	this->tail = this->tail->next;
 	this->tail->key = key;
 	this->tail->next = NULL;
@@ -54,7 +56,7 @@ RET_VALUE SingleLinkedList<T>::insert(T key)
 }
 
 template <typename T>
-RET_VALUE SingleLinkedList<T>::remove(T key)
+RET_VALUE DoubleLinkedList<T>::remove(T key)
 {
 	if(this->size == 0)
 	{	
@@ -68,9 +70,16 @@ RET_VALUE SingleLinkedList<T>::remove(T key)
 		if(curr->key == key)
 		{
 			prev->next = curr->next;
-			if(curr == this->tail)
+			if(curr->next != NULL)
+			{
+				curr->next->prev = prev;
+			}
+			else
 			{
 				this->tail = prev;
+#if DEBUG
+				assert(curr != this->tail); 
+#endif
 			}
 			free(curr);
 			this->size--;
@@ -83,7 +92,7 @@ RET_VALUE SingleLinkedList<T>::remove(T key)
 }
 
 template <typename T>
-RET_VALUE SingleLinkedList<T>::reverse()
+RET_VALUE DoubleLinkedList<T>::reverse()
 {
 	if(this->size >= 2)
 	{
@@ -91,20 +100,24 @@ RET_VALUE SingleLinkedList<T>::reverse()
 		int first_key = this->head->next->key;
 		int last_key = this->tail->key;
 		Node<T>* curr = this->head->next;
-		Node<T>* next = curr->next;
-		Node<T>* next_next = next->next; 
+
+		// First node becomes last node and last node becomes first node (not counting sentinel node)
+		this->head->next = this->tail; 
+		this->tail = curr;  
+		// Swap next and prev pointer
+		curr->prev = curr->next;
 		curr->next = NULL;
-		this->head->next = this->tail;
-		this->tail = curr;
-		while(next_next != NULL)
+		curr = curr->prev;
+		while(curr->next != NULL)
 		{
-			next->next = curr;
-			curr = next;
-			next = next_next;
-			next_next = next_next->next;
+			Node<T>* temp = curr->next;
+			curr->next = curr->prev;
+			curr->prev = temp;
+			curr = temp;
 			count++;
 		}
-		next->next = curr;
+		curr->next = curr->prev;
+		curr->prev = this->head; // points to sentinel node
 #if DEBUG
 		assert(this->head->next->key == last_key); // Make sure first key and last key are swapped
 		assert(this->tail->key == first_key);
@@ -115,32 +128,45 @@ RET_VALUE SingleLinkedList<T>::reverse()
 }
 
 template<typename T>
-int SingleLinkedList<T>::getSize()
+int DoubleLinkedList<T>::getSize()
 {
 	return this->size;
 }
 
 template<typename T>
-void SingleLinkedList<T>::sort()
+void DoubleLinkedList<T>::sort()
 {
 	if(this->size > 1)
 	{
 		// The first node is the sentinel node
 		this->head->next = mergeSort(this->head->next, this->size);
+		this->head->next->prev = this->head;
 		tail = this->head->next;
+		int count = 1;
 		while(tail->next != NULL)
 		{
 			tail = tail->next;
+			count++;
 		}
+#if DEBUG
+		assert(this->size == count);
+		Node<T>* curr = this->tail;
+		for(int i = 0; i < this->size; i++)
+		{
+			curr = curr->prev;
+		}
+		assert(curr == this->head);
+#endif
 	}
 }
 
 template <typename T>
-void SingleLinkedList<T>::print()
+void DoubleLinkedList<T>::printForward()
 {
 	int count = 0;
 	Node<T>* curr = this->head->next;
 	Node<T>* next;
+	std::cout << "Forward:" << std::endl;
 	while(curr != NULL)
 	{
 		std::cout << curr->key;
@@ -148,6 +174,27 @@ void SingleLinkedList<T>::print()
 		curr = next;
 		count++;
 	}
+	std::cout << std::endl;
+#if DEBUG
+	assert(count == this->size);
+#endif 
+}
+
+template <typename T>
+void DoubleLinkedList<T>::printBackward()
+{
+	int count = 0;
+	Node<T>* curr = this->tail;
+	Node<T>* prev;
+	std::cout << "Backward:" << std::endl;
+	while(curr != this->head)
+	{
+		std::cout << curr->key;
+		prev = curr->prev;
+		curr = prev;
+		count++;
+	}
+	std::cout << std::endl;
 #if DEBUG
 	assert(count == this->size);
 #endif 
@@ -155,32 +202,38 @@ void SingleLinkedList<T>::print()
 
 /************************* Private functions *************************/
 template <typename T>
-void SingleLinkedList<T>::copy(SingleLinkedList<T> const & other)
+void DoubleLinkedList<T>::copy(DoubleLinkedList<T> const & other)
 {
-	Node<T>* other_curr = other.head;
+	Node<T> *curr, *prev, *other_curr = other.head;
 	this->head = (Node<T>*)malloc(sizeof(Node<T>));
 	this->head->key = other_curr->key;
-	Node<T>* curr = this->head;
+	curr = this->head;
+	prev = NULL;
 	other_curr = other_curr->next;
 	while(other_curr != NULL)
 	{
 		curr->next = (Node<T>*)malloc(sizeof(Node<T>));
 		curr->next->key = other_curr->key;
+		curr->prev = prev;
+		prev = curr;
 		curr = curr->next;
 		other_curr = other_curr->next;
 		this->size++;
 	}
 	this->tail = curr;
+	curr->prev = prev;
 	curr->next = NULL;
 #if DEBUG
-		print();
+		printForward();
+		std::cout << std::endl;
+		printBackward();
 		std::cout << std::endl;
 		assert(this->size = other.size);
 #endif
 }
 
 template <typename T>
-void SingleLinkedList<T>::clear()
+void DoubleLinkedList<T>::clear()
 {
 	int count = 0;
 	Node<T>* curr = this->head->next;
@@ -198,7 +251,7 @@ void SingleLinkedList<T>::clear()
 }
 
 template <typename T>
-Node<T>* SingleLinkedList<T>::mergeSort(Node<T>* start, int length)
+Node<T>* DoubleLinkedList<T>::mergeSort(Node<T>* start, int length)
 {
 	if(length == 1)
 	{
@@ -213,7 +266,7 @@ Node<T>* SingleLinkedList<T>::mergeSort(Node<T>* start, int length)
 }
 
 template <typename T>
-Node<T>* SingleLinkedList<T>::split(Node<T>* start, int splitIndex)
+Node<T>* DoubleLinkedList<T>::split(Node<T>* start, int splitIndex)
 { 
 	Node<T>* curr = start;
 	for(int i = 0; i < splitIndex; i++)
@@ -227,7 +280,7 @@ Node<T>* SingleLinkedList<T>::split(Node<T>* start, int splitIndex)
 }
 
 template <typename T>
-Node<T>* SingleLinkedList<T>::merge(Node<T>* left, Node<T>* right, int left_length, int right_length)
+Node<T>* DoubleLinkedList<T>::merge(Node<T>* left, Node<T>* right, int left_length, int right_length)
 {
 #if DEBUG
 	assert(left_length > 0);
@@ -235,7 +288,7 @@ Node<T>* SingleLinkedList<T>::merge(Node<T>* left, Node<T>* right, int left_leng
 	assert(left->key != SENTINEL_VAL);
 	assert(right->key != SENTINEL_VAL);
 #endif
-	Node<T>* start, *curr; 
+	Node<T>* start, *curr, *prev; 
 	if(left->key < right->key)
 	{
 		start = left;
@@ -250,6 +303,8 @@ Node<T>* SingleLinkedList<T>::merge(Node<T>* left, Node<T>* right, int left_leng
 		right = right->next;
 		right_length--;
 	}
+	prev = start;
+	curr->prev = NULL;
 	while(left_length > 0 || right_length > 0)
 	{
 		if(left_length == 0)
@@ -276,10 +331,13 @@ Node<T>* SingleLinkedList<T>::merge(Node<T>* left, Node<T>* right, int left_leng
 			right = right->next;
 			right_length--;
 		}
+		curr->prev = prev;
+		prev = curr;
 		curr = curr->next;
+		curr->prev = prev;
 	}
 	curr->next = NULL;
-
+	curr->prev = prev;
 	return start;
 }
 
@@ -288,47 +346,57 @@ int main(int argc, char* argv[])
 {
 	int keys[5] = {2,1,9,3,6};
 	int randnum[5] = {3,1,0,4,2};
-	SingleLinkedList<int> list = SingleLinkedList<int>();
+	DoubleLinkedList<int> list = DoubleLinkedList<int>();
 	//SingleLinkedList<int> list2;
 	std::cout << "Test insert" << std::endl;
 	for(int i = 0; i < 5; i++)
 	{
-		std::cout << "Insert " << keys[i] << ":  ";
+		std::cout << "Insert " << keys[i] << ":  " << std::endl;
 		list.insert(keys[i]);
-		list.print();
-		std::cout << std::endl;
+		list.printForward();
+		list.printBackward();
 	}
 
+	
 	std::cout << "Test reverse" << std::endl;
 	list.reverse();
-	list.print();
-	std::cout << std::endl;
+	list.printForward();
+	list.printBackward();
+	
 
-	std::cout << "Test copy constructor" << std::endl;
-	SingleLinkedList<int> list2 = SingleLinkedList<int>(list);
-	list2.print();
-	std::cout << std::endl;
+	std::cout << std::endl << "Test copy constructor" << std::endl;
+	DoubleLinkedList<int> list2 = DoubleLinkedList<int>(list);
+	list2.printForward();
+	list.printBackward();
 
-	std::cout << "Test operator=" << std::endl;
-	SingleLinkedList<int> list3 = list2;
-	list3.print();
-	std::cout << std::endl;
+	std::cout << std::endl << "Test operator=" << std::endl;
+	DoubleLinkedList<int> list3 = list2;
+	list3.printForward();
+	list.printBackward();
 
-	std::cout << "Test delete" << std::endl;
+	std::cout << std::endl << "Test delete" << std::endl;
 	for(int i = 0; i < 5; i++)
 	{
-		std::cout << "Remove " << keys[randnum[i]] << ":  ";
+		std::cout << "Remove " << keys[randnum[i]] << ":  " << std::endl;
 		list.remove(keys[randnum[i]]);
-		list.print();
-		std::cout << std::endl;
+		list.printForward();
+		list.printBackward();
 	}
 
-	std::cout << "Test sort" << std::endl;
+	std::cout << std::endl << "Test sort" << std::endl;
 	list2.sort();
-	list2.print();
-	std::cout << std::endl;
+	list2.printForward();
+	list2.printBackward();
 
-	std::cout << "Test nested insert and remove" << std::endl; 
+	std::cout << std::endl << "Test nested insert and remove" << std::endl;
+	DoubleLinkedList<int> list4 = DoubleLinkedList<int>();
+	list4.insert(7);
+	list4.insert(2);
+	list4.insert(1);
+	list4.printForward();
+	list4.remove(2);
+	list4.remove(3);
+	list4.printForward();
 
 	return 0;
 }

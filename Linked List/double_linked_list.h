@@ -1,5 +1,5 @@
-#ifndef SINGLE_LINKED_LIST_H
-#define SINGLE_LINKED_LIST_H
+#ifndef DOUBLE_LINKED_LIST_H
+#define DOUBLE_LINKED_LIST_H
 
 #define SENTINEL_VAL 0xAAAAAAAA 
 #define DEBUG        1
@@ -18,22 +18,23 @@ struct Node
 {
 	T key;
 	Node<T>* next;
+	Node<T>* prev;
 };
 
 // This class uses a sentinel node
 
 template <class T>
-class SingleLinkedList
+class DoubleLinkedList
 {
 	public:
 
-		SingleLinkedList();
+		DoubleLinkedList();
 
-		~SingleLinkedList();
+		~DoubleLinkedList();
 
-		SingleLinkedList(SingleLinkedList const & other);
+		DoubleLinkedList(DoubleLinkedList const & other);
 
-		SingleLinkedList<T> & operator=(const SingleLinkedList<T> & rhs);
+		DoubleLinkedList<T> & operator=(const DoubleLinkedList<T> & rhs);
 
 		RET_VALUE insert(T key); 
 		
@@ -45,11 +46,12 @@ class SingleLinkedList
 
 		void sort();
 
-		void print();
+		void printForward();
 
+		void printBackward();
 	
 	private:
-		void copy(SingleLinkedList<T> const & other);
+		void copy(DoubleLinkedList<T> const & other);
 
 		void clear();
 
